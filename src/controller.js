@@ -1,56 +1,58 @@
 export default class Controller {
   constructor(game, view) {
-    this.game = game;
-    this.view = view;
-    this.intervalId = null;
-    this.isPlaying = false;
+    this._game = game;
+    this._view = view;
+    this._isPlaying = false;
+    this._interval = null;
 
-    document.addEventListener('keydown', this.handleKeyDown.bind(this));
-    document.addEventListener('keyup', this.handleKeyUp.bind(this));
+    this.update = this.update.bind(this);
 
-    this.view.renderStartScreen();
+    view.on('keypress', this._handleKeyPress.bind(this));
+    view.on('keydown', this._handleKeyDown.bind(this));
+    view.on('keyup', this._handleKeyUp.bind(this));
+
+    this._view.renderStartScreen();
   }
 
   update() {
-    this.game.movePieceDown();
-    this.updateView();
+    this._game.movePieceDown();
+    this._updateView();
   }
 
   play() {
-    this.isPlaying = true;
-    this.startTimer();
-    this.updateView();
+    this._isPlaying = true;
+    this._startTimer();
+    this._updateView();
   }
 
   pause() {
-    this.isPlaying = false;
-    this.stopTimer();
-    this.updateView();
+    this._isPlaying = false;
+    this._stopTimer();
+    this._updateView();
   }
 
   reset() {
-    this.game.reset();
-    this.stopTimer();
+    this._game.reset();
     this.play();
   }
 
-  updateView() {
-    const state = this.game.getState();
+  _updateView() {
+    const state = this._game.state;
 
     if (state.isGameOver) {
-      this.view.renderEndScreen(state);
-    } else if (!this.isPlaying) {
-      this.view.renderPauseScreen();
+      this._view.renderEndScreen(state);
+    } else if (!this._isPlaying) {
+      this._view.renderPauseScreen(state);
     } else {
-      this.view.renderMainScreen(this.game.getState());
+      this._view.renderMainScreen(state);
     }
   }
 
-  startTimer() {
-    const speed = 1000 - this.game.getState().level * 100;
+  _startTimer() {
+    const speed = 1000 - this._game.level * 100;
 
-    if (!this.intervalId) {
-      this.intervalId = setInterval(
+    if (!this._interval) {
+      this._interval = setInterval(
         () => {
           this.update();
         },
@@ -59,58 +61,54 @@ export default class Controller {
     }
   }
 
-  stopTimer() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
+  _stopTimer() {
+    if (this._interval) {
+      clearInterval(this._interval);
+      this._interval = null;
     }
   }
 
-  handleKeyDown(event) {
-    const state = this.game.getState();
-
-    switch (event.key) {
-      case 'Enter':
-        if (state.isGameOver) {
+  _handleKeyPress(event) {
+    switch (event.keyCode) {
+      case 13: // ENTER
+        if (this._game.state.isGameOver) {
+          console.log(this._game.state);
           this.reset();
-        } else if (this.isPlaying) {
+        } else if (this._isPlaying) {
           this.pause();
         } else {
           this.play();
         }
         break;
-      case 'ArrowLeft':
-        if (this.isPlaying) {
-          this.game.movePieceLeft();
-          this.updateView();
-        }
+    }
+  }
+
+  _handleKeyDown(event) {
+    switch (event.keyCode) {
+      case 37: // LEFT ARROW
+        if (this._isPlaying) this._game.movePieceLeft();
+        this._updateView();
         break;
-      case 'ArrowUp':
-        if (this.isPlaying) {
-          this.game.rotatePiece();
-          this.updateView();
-        }
+      case 38: // UP ARROW
+        this._game.rotatePiece();
+        this._updateView();
         break;
-      case 'ArrowRight':
-        if (this.isPlaying) {
-          this.game.movePieceRight();
-          this.updateView();
-        }
+      case 39: // RIGHT ARROW
+        this._game.movePieceRight();
+        this._updateView();
         break;
-      case 'ArrowDown':
-        if (this.isPlaying) {
-          this.stopTimer();
-          this.game.movePieceDown();
-          this.updateView();
-        }
+      case 40: // DOWN ARROW
+        this._stopTimer();
+        this._game.movePieceDown();
+        this._updateView();
         break;
     }
   }
 
-  handleKeyUp(event) {
-    switch (event.key) {
-      case 'ArrowDown':
-        this.startTimer();
+  _handleKeyUp(event) {
+    switch (event.keyCode) {
+      case 40: // DOWN ARROW
+        this._startTimer();
         break;
     }
   }
